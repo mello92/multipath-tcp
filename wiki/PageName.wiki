@@ -1,9 +1,9 @@
-#summary One-sentence summary of this page.
 #labels multipathtcp,mptcp
+multipath TCP implementation on ns-2
 
 = Introduction =
 
-multipath TCP implementation on ns-2
+This project focus on developing implementation of multipath TCP on ns-2 for further research. Multipath TCP is an extension to TCP which allows to use multiple paths and is being discussed at IETF for standardization. Please check the following URL for more information about multipath TCP. http://datatracker.ietf.org/wg/mptcp/charter/
 
 
 = Details =

@@ -1,0 +1,27 @@
+This page describes how to run simulations for multipath TCP
+
+= Quick Start =
+
+  === Using sample script ===
+  You can download the sample script from http://code.google.com/p/multipath-tcp/downloads/detail?name=mptcp-sample.tcl&can=2&q=#makechanges
+
+  The sample script create 2 mptcp instances (sender and receiver) and 2 pairs of SackFullTcpAgent. In the configuration in the sample script, all connections should get almost the same amount of bandwidth after they reach equivalent state. 
+
+= How to parse mptcp traffic from trace file =
+
+  If you put the following line in your scripts, the trace module outputs mptcp information in trace files.
+   % *Trace set show_tcphdr_ 2* _
+ 
+  The mptcp traffic in trace files will be something like:
+
+   *- 0.130126 1 10 tcp 576 ------- 0 1.1 4.1 537 22 1 0x18 40 0 D 1073 537 536*
+
+
+
+
+= Write your own scripts =
+
+Add your content here.  Format your content with:
+  * Text in *bold* or _italic_
+  * Headings, paragraphs, and lists
+  * Automatic links to other wiki pages

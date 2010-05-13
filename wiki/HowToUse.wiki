@@ -16,7 +16,7 @@ This page describes how to run simulations for multipath TCP
      %*nam out.nam*
 
 
-= How to parse mptcp traffic from trace file =
+= How to parse mptcp traffic in trace files =
 
   If you put the following line in your scripts, the trace module outputs mptcp information in trace files.
    % *Trace set show_tcphdr_ 2* _

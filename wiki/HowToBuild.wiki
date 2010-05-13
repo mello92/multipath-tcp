@@ -4,3 +4,5 @@ Please do the following step to build the ns-2 with this code.
   * Checkout the mptcp code from https://code.google.com/p/multipath-tcp/source/checkout
   * Merge ns-2.34 directory in the mptcp code into the original ns-2.34 directories
   * build ns-2.34 as usual 
+
+We recommend to use ns-2.34 and haven't tested other versions.

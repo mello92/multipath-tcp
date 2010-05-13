@@ -13,7 +13,7 @@ This page describes how to run simulations for multipath TCP
 
   Also, since the script generates nam trace file, you can see the simulation result with nam by the following command line
 
-     %*nam out.nam"
+     %*nam out.nam*
 
 
 = How to parse mptcp traffic from trace file =

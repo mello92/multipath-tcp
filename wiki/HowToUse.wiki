@@ -1,6 +1,6 @@
 This page describes how to run simulations for multipath TCP
 
-= Quick Start =
+== Quick Start ==
 
   === Using sample script ===
   You can download the sample script from http://code.google.com/p/multipath-tcp/downloads/detail?name=mptcp-sample.tcl&can=2&q=#makechanges
@@ -16,7 +16,7 @@ This page describes how to run simulations for multipath TCP
      %*nam out.nam*
 
 
-= How to parse mptcp traffic in trace files =
+== How to parse mptcp traffic in trace files ==
 
   If you put the following line in your scripts, the trace module outputs mptcp information in trace files.
    % *Trace set show_tcphdr_ 2* _
@@ -35,6 +35,6 @@ This page describes how to run simulations for multipath TCP
   In case of DataAck Option, option fields represent *A "Data Seqnum*
 
 
-= Write your own scripts =
+== Write your own scripts ==
 
 TBD

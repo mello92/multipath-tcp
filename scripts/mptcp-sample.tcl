@@ -178,7 +178,7 @@ proc finish {} {
           }
         }
     } 
-	exec rm -f dseq seq0 seq1
+	exec rm -f mptcp normal-tcp1 normal-tcp2
     exec awk $awkcode out.tr
     exec xgraph -M -m -nl mptcp normal-tcp1 normal-tcp2 
 	exit

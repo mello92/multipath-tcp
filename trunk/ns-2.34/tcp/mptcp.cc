@@ -49,7 +49,7 @@ public:
 class_mptcp;
 
 MptcpAgent::MptcpAgent ():Agent (PT_TCP), sub_num_ (0), total_bytes_ (0),
-mcurseq_ (1), mackno_ (0)
+mcurseq_ (1), mackno_ (1)
 {
 }
 
@@ -259,12 +259,11 @@ MptcpAgent::add_destination (int addr, int port)
 /*
  * check if this subflow can reach to the specified address
  */
-bool MptcpAgent::check_routable (int sid, int addr, int port)
+bool
+MptcpAgent::check_routable (int sid, int addr, int port)
 {
-  Packet *
-    p = allocpkt ();
-  hdr_ip *
-    iph = hdr_ip::access (p);
+  Packet *p = allocpkt ();
+  hdr_ip *iph = hdr_ip::access (p);
   iph->daddr () = addr;
   iph->dport () = port;
   bool
@@ -373,4 +372,47 @@ MptcpAgent::calculate_alpha ()
   if (!sumi)
     return;
   alpha_ = totalcwnd_ * maxi / (sumi * sumi);
+}
+
+/*
+ * create ack block based on data ack information
+ */
+void
+MptcpAgent::set_dataack (int ackno, int length)
+{
+  bool found = false;
+  vector < dack_mapping >::iterator it = dackmap_.begin ();
+
+  while (it != dackmap_.end ()) {
+    struct dack_mapping *p = &*it;
+
+    /* find matched block for this data */
+    if (p->ackno <= ackno && p->ackno + p->length >= ackno &&
+        p->ackno + p->length < ackno + length) {
+      p->length = ackno + length - p->ackno;
+      found = true;
+      break;
+    }
+    else
+      ++it;
+  }
+
+  /* if there's no matching block, add new one */
+  if (!found) {
+    struct dack_mapping tmp_map = { ackno, length };
+    dackmap_.push_back (tmp_map);
+  }
+
+  /* re-calculate cumlative ack and erase old records */
+  it = dackmap_.begin ();
+  while (it != dackmap_.end ()) {
+    struct dack_mapping *p = &*it;
+    if (mackno_ >= p->ackno && mackno_ <= p->ackno + p->length)
+      mackno_ = ackno + length;
+    if (mackno_ > p->ackno + p->length) {
+      it = dackmap_.erase (it);
+    }
+    else
+      ++it;
+  }
 }

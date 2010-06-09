@@ -33,6 +33,7 @@
 #include "agent.h"
 #include "node.h"
 #include "packet.h"
+#include <vector>
 
 #define MAX_SUBFLOW 100
 
@@ -64,6 +65,12 @@ struct dstinfo
   bool active_;
 };
 
+struct dack_mapping
+{
+  int ackno;
+  int length;
+};
+
 class MptcpAgent:public Agent
 {
   friend class XcpEndsys;
@@ -75,11 +82,7 @@ public:
   };
   void delay_bind_init_all ();
   void recv (Packet * pkt, Handler *);
-  void set_dataack (int ackno)
-  {
-    if (mackno_ < ackno)
-      mackno_ = ackno;
-  }
+  void set_dataack (int ackno, int length);
   int get_dataack ()
   {
     return mackno_;
@@ -114,4 +117,5 @@ protected:
   double alpha_;
   struct subflow subflows_[MAX_SUBFLOW];
   struct dstinfo dsts_[MAX_SUBFLOW];
+  vector < dack_mapping > dackmap_;
 };

@@ -191,7 +191,7 @@ MpFullTcpAgent::sendpacket (int seqno, int ackno, int pflags, int datalen,
         tcph->mp_capable () = 1;
         mptcp_option_size_ += MPTCP_CAPABLEOPTION_SIZE;
       }
-      if (mpjoin_){
+      if (mpjoin_) {
         tcph->mp_join () = 1;
         mptcp_option_size_ += MPTCP_JOINOPTION_SIZE;
       }
@@ -199,7 +199,7 @@ MpFullTcpAgent::sendpacket (int seqno, int ackno, int pflags, int datalen,
   }
   else {
     tcph->mp_ack () = mptcp_recv_getack (ackno);
-    if (tcph->mp_ack())
+    if (tcph->mp_ack ())
       mptcp_option_size_ += MPTCP_ACKOPTION_SIZE;
   }
 
@@ -297,7 +297,7 @@ MpFullTcpAgent::mptcp_recv_getack (int ackno)
     if (ackno >= p->sseqnum && ackno <= p->sseqnum + p->length) {
       int offset = ackno - p->sseqnum;
 
-      mptcp_core_->set_dataack (p->dseqnum + offset);
+      mptcp_core_->set_dataack (p->dseqnum, offset);
       return mptcp_core_->get_dataack ();
     }
     if (ackno > p->sseqnum + p->length) {

@@ -101,13 +101,23 @@ MptcpAgent::command (int argc, const char *const *argv)
       return (TCL_OK);
     }
     if (strcmp (argv[1], "reset") == 0) {
+
+      /* reset used flag information */
+      bool used_dst[dst_num_];
+      for (int j = 0; j < dst_num_; j++) used_dst[j] = false;
+
       for (int i = 0; i < sub_num_; i++) {
         for (int j = 0; j < dst_num_; j++) {
+
+          /* if this destination is already used by other subflow, don't use it */
+          if (used_dst[j]) continue;
+
           if (check_routable (i, dsts_[j].addr_, dsts_[j].port_)) {
             subflows_[i].daddr_ = dsts_[j].addr_;
             subflows_[i].dport_ = dsts_[j].port_;
             subflows_[i].tcp_->daddr () = dsts_[j].addr_;
             subflows_[i].tcp_->dport () = dsts_[j].port_;
+            used_dst[j] = true; 
             break;
           }
         }

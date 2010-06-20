@@ -122,6 +122,9 @@ protected:
   bool mptcp_primary_;
   bool mptcp_allow_slowstart_;
   int mptcp_byte_acked_;
+  int mptcp_prev_ackno_;     // previous highest ack 
+  int mptcp_prev_sqminseq_;  // previous minseq in sack block
+  int mptcp_prev_sqtotal_;   // previous total bytes in sack blocks
   int mptcp_option_size_;
   vector < dsn_mapping > mptcp_dsnmap_;
   vector < dsn_mapping > mptcp_recv_dsnmap_;

@@ -330,10 +330,25 @@ MpFullTcpAgent::mptcp_remove_mapping (int seqnum)
 void
 MpFullTcpAgent::mptcp_set_byteacked (Packet * pkt)
 {
-  hdr_tcp *tcph = hdr_tcp::access (pkt);
-  register int ackno = tcph->ackno ();
-  int maxseq = ((int) sq_.maxseq () > 0) ? sq_.maxseq () : (int) highest_ack_;
-  mptcp_byte_acked_ = (ackno > maxseq) ? (ackno - maxseq) / maxseg_ : 0;
+  mptcp_byte_acked_ = 0;
+  int minseq_ = sq_.minseq();
+  if (minseq_ < 0) {
+    // we don't have sack blocks
+//    mptcp_byte_acked_ = ((mptcp_prev_sqtotal_ > 0) ? mptcp_prev_sqtotal_ : 0);
+    mptcp_byte_acked_ += (int)highest_ack_ - mptcp_prev_ackno_ - mptcp_prev_sqtotal_; 
+  } else {
+    // we have sack blocks
+    if (sq_.minseq() > mptcp_prev_sqminseq_ && mptcp_prev_sqminseq_ > 0) 
+      mptcp_byte_acked_ = sq_.minseq() - mptcp_prev_sqminseq_;
+    else
+      mptcp_byte_acked_ = sq_.total() - mptcp_prev_sqtotal_;
+  }
+
+  mptcp_prev_sqtotal_ = (int)sq_.total();
+  mptcp_prev_sqminseq_ = (int)sq_.minseq();
+  mptcp_prev_ackno_ = (int)highest_ack_;
+
+  mptcp_byte_acked_ /= maxseg_;
 }
 
 /*
@@ -349,13 +364,14 @@ MpFullTcpAgent::opencwnd ()
     cwnd_ += 1;
   }
   else {
+#if 1
     double alpha = mptcp_core_->get_alpha ();
-
     int totalcwnd = mptcp_core_->get_totalcwnd ();
     if (totalcwnd)
       increment = min (alpha * mptcp_byte_acked_ / totalcwnd,
                        mptcp_byte_acked_ / cwnd_);
     else
+#endif
       increment = increase_num_ / cwnd_;
 
     if ((last_cwnd_action_ == 0 || last_cwnd_action_ == CWND_ACTION_TIMEOUT)

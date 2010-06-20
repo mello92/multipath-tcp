@@ -211,7 +211,7 @@ MptcpAgent::recv (Packet * pkt, Handler * h)
   hdr_ip *iph = hdr_ip::access (pkt);
   hdr_tcp *tcph = hdr_tcp::access (pkt);
 
-  /* find subflow tcp from the destination address */
+  /* find subflow id from the destination address */
   int id = find_subflow (iph->daddr ());
   if (id < 0) {
     fprintf (stderr,
@@ -221,22 +221,25 @@ MptcpAgent::recv (Packet * pkt, Handler * h)
 
   /* processing mptcp options */
   if (tcph->mp_capable ()) {
+    /* if we receive mpcapable option, return the same option as response */
     subflows_[id].tcp_->mpcapable_ = true;
   }
   if (tcph->mp_join ()) {
+    /* if we receive mpjoin option, return the same option as response */
     subflows_[id].tcp_->mpjoin_ = true;
   }
   if (tcph->mp_ack ()) {
+    /* when we receive mpack, erase the acked record */
     subflows_[id].tcp_->mptcp_remove_mapping (tcph->mp_ack ());
   }
 
   if (tcph->mp_dsn ()) {
+    /* when we receive mpdata, update new mapping */
     subflows_[id].tcp_->mpack_ = true;
     subflows_[id].tcp_->mptcp_recv_add_mapping (tcph->mp_dsn (),
                                                 tcph->mp_subseq (),
                                                 tcph->mp_dsnlen ());
   }
-  subflows_[id].tcp_->mptcp_set_byteacked (pkt);
 
   /* make sure packet will be return to the src addr of the packet */
   subflows_[id].tcp_->daddr () = iph->saddr ();
@@ -244,6 +247,10 @@ MptcpAgent::recv (Packet * pkt, Handler * h)
 
   /* call subflow's recv function */
   subflows_[id].tcp_->recv (pkt, h);
+
+  /* count how much bytes are acked */
+  subflows_[id].tcp_->mptcp_set_byteacked (pkt);
+
   send_control ();
 }
 
@@ -351,7 +358,8 @@ MptcpAgent::send_control ()
 void
 MptcpAgent::calculate_alpha ()
 {
-  totalcwnd_ = alpha_ = 0;
+  totalcwnd_ = 0;
+  alpha_ = 0;
   double maxi = 0;
   double sumi = 0;
 
@@ -363,7 +371,7 @@ MptcpAgent::calculate_alpha ()
       subflows_[i].scwnd_ = cwnd;
     else
       subflows_[i].scwnd_ =
-        subflows_[i].scwnd_ * 0.875 + (double) cwnd *0.125;
+        subflows_[i].scwnd_ * 0.875 + (double) cwnd * 0.125;
     double scwnd = subflows_[i].scwnd_;
 
     totalcwnd_ += scwnd;
@@ -381,6 +389,7 @@ MptcpAgent::calculate_alpha ()
   }
   if (!sumi)
     return;
+
   alpha_ = totalcwnd_ * maxi / (sumi * sumi);
 }
 

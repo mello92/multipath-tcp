@@ -6,7 +6,8 @@ Note: We recommend to use ns-2.34 and haven't tested other versions.
 
   * Download ns-2.34 code from http://www.isi.edu/nsnam/ns/ and extract it
   * Checkout the mptcp code from https://code.google.com/p/multipath-tcp/source/checkout
-  * Merge ns-2.34 directory in the mptcp code into the original ns-2.34 directories
+  * Merge ns-2.34 directory in the mptcp code into the original ns-2.34 directories by doing something like: 
+       %cp -r multipath-tcp/ns-2.34/`*` ns-allinone-2.34/ns-2.34/`*`
   * build ns-2.34 as usual 
 
 == build from patch file ==

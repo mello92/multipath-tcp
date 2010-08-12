@@ -14,5 +14,5 @@ Note: We recommend to use ns-2.34 and haven't tested other versions.
   * Download ns-2.34 code from http://www.isi.edu/nsnam/ns/ and extract it
   * Download the mptcp patch from https://code.google.com/p/multipath-tcp/downloads/detail?name=mptcp.patch.20100512&can=2&q=#makechanges
   * goto ns-2.34 directory and run the following command to apply the patch.
-     %patch -p0 < mptcp.patch.20100512.patch
+     %patch -p1 < mptcp.patch.20100810.patch
   * build ns-2.34 as usual

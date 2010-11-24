@@ -87,6 +87,15 @@ public:
   {
     return (double) ((t_srtt_ >> T_SRTT_BITS) * tcp_tick_);
   }
+  double mptcp_get_backoff ()
+  {
+    return (int) t_backoff_;
+  }
+  int mptcp_get_numdupacks ()
+  {
+    return (int) dupacks_;
+  }
+
   void mptcp_set_core (MptcpAgent *);
   void mptcp_set_primary ()
   {

@@ -316,9 +316,18 @@ MptcpAgent::send_control ()
       int cwnd = subflows_[i].tcp_->mptcp_get_cwnd () * mss;
       int ssthresh = subflows_[i].tcp_->mptcp_get_ssthresh () * mss;
       int maxseq = subflows_[i].tcp_->mptcp_get_maxseq ();
+      int backoff = subflows_[i].tcp_->mptcp_get_backoff ();
       int highest_ack = subflows_[i].tcp_->mptcp_get_highest_ack ();
+      int dupacks = subflows_[i].tcp_->mptcp_get_numdupacks();
+
       /* too naive logic to calculate outstanding bytes? */
-      int outstanding = maxseq - highest_ack;
+      int outstanding = maxseq - highest_ack - dupacks * mss;
+      if (outstanding <= 0) outstanding = 0;
+
+#if 1
+	  // we don't utlize a path which has lots of timeouts
+      if (backoff >= 4) continue;
+#endif
 
       if (cwnd < ssthresh) {
         /* allow only one subflow to do slow start at the same time */
@@ -347,8 +356,14 @@ MptcpAgent::send_control ()
 
       total_bytes_ -= sendbytes;
     }
-    if (!slow_start)
-      calculate_alpha ();
+    if (!slow_start) {
+      static double last_calctime = 0.01; 
+      double now = Scheduler::instance().clock();
+      if (last_calctime < 0.02 || now > last_calctime + 0.1) {
+        calculate_alpha ();
+        last_calctime = now;
+      }
+    }
   }
 }
 
@@ -364,6 +379,12 @@ MptcpAgent::calculate_alpha ()
   double sumi = 0;
 
   for (int i = 0; i < sub_num_; i++) {
+#if 1
+    int backoff = subflows_[i].tcp_->mptcp_get_backoff ();
+    // we don't utlize a path which has lots of timeouts
+    if (backoff >= 4) continue;
+#endif
+
     int cwnd = subflows_[i].tcp_->mptcp_get_cwnd ();
 
     /* calculate smoothed cwnd */

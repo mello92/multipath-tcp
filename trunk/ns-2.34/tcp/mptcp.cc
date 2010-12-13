@@ -313,7 +313,7 @@ MptcpAgent::send_control ()
     for (int i = 0; i < sub_num_; i++) {
 
       int mss = subflows_[i].tcp_->size ();
-      int cwnd = subflows_[i].tcp_->mptcp_get_cwnd () * mss;
+      double cwnd = subflows_[i].tcp_->mptcp_get_cwnd () * mss;
       int ssthresh = subflows_[i].tcp_->mptcp_get_ssthresh () * mss;
       int maxseq = subflows_[i].tcp_->mptcp_get_maxseq ();
       int backoff = subflows_[i].tcp_->mptcp_get_backoff ();
@@ -350,6 +350,8 @@ MptcpAgent::send_control ()
       if (sendbytes > total_bytes_)
         sendbytes = total_bytes_;
 
+      if (sendbytes > mss) sendbytes = mss;
+
       subflows_[i].tcp_->mptcp_add_mapping (mcurseq_, sendbytes);
       subflows_[i].tcp_->sendmsg (sendbytes);
       mcurseq_ += sendbytes;
@@ -385,7 +387,7 @@ MptcpAgent::calculate_alpha ()
     if (backoff >= 4) continue;
 #endif
 
-    int cwnd = subflows_[i].tcp_->mptcp_get_cwnd ();
+    double cwnd = subflows_[i].tcp_->mptcp_get_cwnd ();
 
     /* calculate smoothed cwnd */
     if (subflows_[i].scwnd_ < 1)

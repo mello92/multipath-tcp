@@ -67,9 +67,9 @@ public:
   }
 
   /* multipath TCP */
-  int mptcp_get_cwnd ()
+  double mptcp_get_cwnd ()
   {
-    return (int) cwnd_;
+    return (double) cwnd_;
   }
   int mptcp_get_ssthresh ()
   {

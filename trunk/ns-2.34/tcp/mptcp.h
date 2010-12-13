@@ -91,7 +91,7 @@ public:
   {
     return alpha_;
   }
-  int get_totalcwnd ()
+  double get_totalcwnd ()
   {
     return totalcwnd_;
   }
@@ -113,7 +113,7 @@ protected:
   int total_bytes_;
   int mcurseq_;
   int mackno_;
-  int totalcwnd_;
+  double totalcwnd_;
   double alpha_;
   struct subflow subflows_[MAX_SUBFLOW];
   struct dstinfo dsts_[MAX_SUBFLOW];

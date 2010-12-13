@@ -366,8 +366,8 @@ MpFullTcpAgent::opencwnd ()
   else {
 #if 1
     double alpha = mptcp_core_->get_alpha ();
-    int totalcwnd = mptcp_core_->get_totalcwnd ();
-    if (totalcwnd)
+    double totalcwnd = mptcp_core_->get_totalcwnd ();
+    if (totalcwnd > 0.1)
       increment = min (alpha * mptcp_byte_acked_ / totalcwnd,
                        mptcp_byte_acked_ / cwnd_);
     else

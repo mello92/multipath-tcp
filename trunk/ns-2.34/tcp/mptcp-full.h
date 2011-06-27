@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010 WIDE Project.  All rights reserved.
+ * Copyright (C) 2011 WIDE Project.  All rights reserved.
  *
  * Yoshifumi Nishida  <nishida@sfc.wide.ad.jp>
  *
@@ -62,14 +62,27 @@ class MpFullTcpAgent:public SackFullTcpAgent
 {
 public:
   MpFullTcpAgent ():mptcp_core_ (NULL), mptcp_primary_ (false),
-    mptcp_allow_slowstart_ (true), mptcp_byte_acked_ (0)
+    mptcp_allow_slowstart_ (true), mptcp_last_cwnd_(0)
   {
   }
 
   /* multipath TCP */
   double mptcp_get_cwnd ()
   {
+    if (fastrecov_){
+        /* use ssthresh value for flows in fast retransmit
+           see Section 3 for draft-ietf-mptcp-congestion-05 */
+        return (double) ssthresh_;
+    }
     return (double) cwnd_;
+  }
+  double mptcp_get_last_cwnd() 
+  {
+    return mptcp_last_cwnd_;
+  }
+  void mptcp_set_last_cwnd(double cwnd_) 
+  {
+    mptcp_last_cwnd_ = cwnd_;
   }
   int mptcp_get_ssthresh ()
   {
@@ -104,7 +117,6 @@ public:
   void mptcp_add_mapping (int dseqnum, int length);
   void mptcp_recv_add_mapping (int dseqnum, int sseqnum, int length);
   void mptcp_remove_mapping (int seqnum);
-  void mptcp_set_byteacked (Packet * pkt);
   void mptcp_set_slowstart (bool value)
   {
     mptcp_allow_slowstart_ = value;
@@ -121,6 +133,8 @@ public:
   bool mpack_;
 protected:
   void opencwnd ();
+  void dupack_action ();
+  void timeout_action ();
   int headersize ();            // a tcp header w/opts
   virtual void sendpacket (int seq, int ack, int flags, int dlen, int why,
                            Packet * p = 0);
@@ -130,11 +144,11 @@ protected:
   MptcpAgent *mptcp_core_;
   bool mptcp_primary_;
   bool mptcp_allow_slowstart_;
-  int mptcp_byte_acked_;
   int mptcp_prev_ackno_;     // previous highest ack 
   int mptcp_prev_sqminseq_;  // previous minseq in sack block
   int mptcp_prev_sqtotal_;   // previous total bytes in sack blocks
   int mptcp_option_size_;
+  int mptcp_last_cwnd_;
   vector < dsn_mapping > mptcp_dsnmap_;
   vector < dsn_mapping > mptcp_recv_dsnmap_;
 };

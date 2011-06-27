@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010 WIDE Project.  All rights reserved.
+ * Copyright (C) 2011 WIDE Project.  All rights reserved.
  *
  * Yoshifumi Nishida  <nishida@sfc.wide.ad.jp>
  *
@@ -93,18 +93,21 @@ public:
   }
   double get_totalcwnd ()
   {
+    totalcwnd_ = 0;
+    for (int i = 0; i < sub_num_; i++) {
+       totalcwnd_ += subflows_[i].tcp_->mptcp_get_cwnd ();
+    }
     return totalcwnd_;
   }
   int command (int argc, const char *const *argv);
+  void calculate_alpha ();
   TracedInt curseq_;
 protected:
   int get_subnum ();
   int find_subflow (int addr, int port);
   int find_subflow (int addr);
-  void calc_alpha ();
   void send_control ();
   void add_destination (int addr, int port);
-  void calculate_alpha ();
   bool check_routable (int sid, int addr, int port);
 
   Classifier *core_;

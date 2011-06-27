@@ -70,12 +70,12 @@ set r3 [$ns node]
 set r4 [$ns node]
 
 $ns duplex-link $n0_0 $r1 10Mb 5ms DropTail
-$ns duplex-link $r1 $r3   1Mb 5ms DropTail
+$ns duplex-link $r1 $r3 1Mb 5ms RED
 $ns queue-limit $r1 $r3 30
 $ns duplex-link $n1_0 $r3 10Mb 5ms DropTail
 
 $ns duplex-link $n0_1 $r2 10Mb 5ms DropTail
-$ns duplex-link $r2 $r4   1Mb 5ms DropTail
+$ns duplex-link $r2 $r4 1Mb 5ms RED
 $ns queue-limit $r2 $r4 30
 $ns duplex-link $n1_1 $r4 10Mb 5ms DropTail
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010 WIDE Project.  All rights reserved.
+ * Copyright (C) 2011 WIDE Project.  All rights reserved.
  *
  * Yoshifumi Nishida  <nishida@sfc.wide.ad.jp>
  *
@@ -248,9 +248,6 @@ MptcpAgent::recv (Packet * pkt, Handler * h)
   /* call subflow's recv function */
   subflows_[id].tcp_->recv (pkt, h);
 
-  /* count how much bytes are acked */
-  subflows_[id].tcp_->mptcp_set_byteacked (pkt);
-
   send_control ();
 }
 
@@ -320,14 +317,14 @@ MptcpAgent::send_control ()
       int highest_ack = subflows_[i].tcp_->mptcp_get_highest_ack ();
       int dupacks = subflows_[i].tcp_->mptcp_get_numdupacks();
 
-      /* too naive logic to calculate outstanding bytes? */
-      int outstanding = maxseq - highest_ack - dupacks * mss;
-      if (outstanding <= 0) outstanding = 0;
-
 #if 1
 	  // we don't utlize a path which has lots of timeouts
       if (backoff >= 4) continue;
 #endif
+
+      /* too naive logic to calculate outstanding bytes? */
+      int outstanding = maxseq - highest_ack - dupacks * mss;
+      if (outstanding <= 0) outstanding = 0;
 
       if (cwnd < ssthresh) {
         /* allow only one subflow to do slow start at the same time */
@@ -336,7 +333,7 @@ MptcpAgent::send_control ()
           subflows_[i].tcp_->mptcp_set_slowstart (true);
         }
         else
-#if 1
+#if 0
           subflows_[i].tcp_->mptcp_set_slowstart (false);
 #else
           /* allow to do slow-start simultaneously */
@@ -357,63 +354,75 @@ MptcpAgent::send_control ()
       mcurseq_ += sendbytes;
 
       total_bytes_ -= sendbytes;
-    }
-    if (!slow_start) {
-      static double last_calctime = 0.01; 
-      double now = Scheduler::instance().clock();
-      if (last_calctime < 0.02 || now > last_calctime + 0.1) {
-        calculate_alpha ();
-        last_calctime = now;
+
+#if 0
+      if (!slow_start) {
+         double cwnd_i = subflows_[i].tcp_->mptcp_get_cwnd ();
+         /*
+            As recommended in 4.1 of draft-ietf-mptcp-congestion-05
+            Update alpha only if cwnd_i/mss_i != cwnd_new_i/mss_i.
+         */
+         if (abs(subflows_[i].tcp_->mptcp_get_last_cwnd () - cwnd_i) < 1) {
+            calculate_alpha ();
+         }
+         subflows_[i].tcp_->mptcp_set_last_cwnd (cwnd_i);
       }
+#endif
     }
   }
 }
 
 /*
- *  calculate alpha based on the equation in draft-raiciu-mptcp-congestion-01
+ *  calculate alpha based on the equation in draft-ietf-mptcp-congestion-05
+ *
+ *  Peforme ths following calculation
+
+                                      cwnd_i
+                                 max --------
+                                  i         2
+                                      rtt_i
+             alpha = tot_cwnd * ----------------
+                               /      cwnd_i \ 2
+                               | sum ---------|
+                               \  i   rtt_i  /
+
+
  */
+
 void
 MptcpAgent::calculate_alpha ()
 {
-  totalcwnd_ = 0;
-  alpha_ = 0;
-  double maxi = 0;
-  double sumi = 0;
+  double max_i = 0.001;
+  double sum_i = 0;
+  double avr_i = 0;
+  int totalcwnd = 0;
 
   for (int i = 0; i < sub_num_; i++) {
 #if 1
     int backoff = subflows_[i].tcp_->mptcp_get_backoff ();
     // we don't utlize a path which has lots of timeouts
-    if (backoff >= 4) continue;
+    if (backoff >= 4) 
+       continue;
 #endif
 
-    double cwnd = subflows_[i].tcp_->mptcp_get_cwnd ();
+    double rtt_i  = subflows_[i].tcp_->mptcp_get_srtt ();
+    int cwnd_i = (int)subflows_[i].tcp_->mptcp_get_cwnd ();
 
-    /* calculate smoothed cwnd */
-    if (subflows_[i].scwnd_ < 1)
-      subflows_[i].scwnd_ = cwnd;
-    else
-      subflows_[i].scwnd_ =
-        subflows_[i].scwnd_ * 0.875 + (double) cwnd * 0.125;
-    double scwnd = subflows_[i].scwnd_;
+    if (rtt_i < 0.000001) // too small. Let's not update alpha
+      return; 
 
-    totalcwnd_ += scwnd;
+    double tmp_i = cwnd_i / (rtt_i * rtt_i);
+    if (max_i < tmp_i)
+      max_i = tmp_i;
+    avr_i += tmp_i;
 
-    /* use smmothed RTT */
-    double rtt = subflows_[i].tcp_->mptcp_get_srtt ();
-    if (rtt < 0.000001)
-      continue;                 // too small
-
-    double tmpi = scwnd / (rtt * rtt);
-    if (maxi < tmpi)
-      maxi = tmpi;
-
-    sumi += scwnd / rtt;
+    sum_i += cwnd_i / rtt_i;
+    totalcwnd += cwnd_i;
   }
-  if (!sumi)
+  if (sum_i < 0.001)
     return;
 
-  alpha_ = totalcwnd_ * maxi / (sumi * sumi);
+  alpha_ = totalcwnd * max_i / (sum_i * sum_i);
 }
 
 /*

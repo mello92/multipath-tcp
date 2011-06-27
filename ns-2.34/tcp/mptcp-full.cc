@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010 WIDE Project.  All rights reserved.
+ * Copyright (C) 2011 WIDE Project.  All rights reserved.
  *
  * Yoshifumi Nishida  <nishida@sfc.wide.ad.jp>
  *
@@ -325,39 +325,26 @@ MpFullTcpAgent::mptcp_remove_mapping (int seqnum)
 }
 
 /*
- * calculate byte_acked for this packet for congestion control
- */
-void
-MpFullTcpAgent::mptcp_set_byteacked (Packet * pkt)
-{
-  mptcp_byte_acked_ = 0;
-  int minseq_ = sq_.minseq();
-  if (minseq_ < 0) {
-    // we don't have sack blocks
-//    mptcp_byte_acked_ = ((mptcp_prev_sqtotal_ > 0) ? mptcp_prev_sqtotal_ : 0);
-    mptcp_byte_acked_ += (int)highest_ack_ - mptcp_prev_ackno_ - mptcp_prev_sqtotal_; 
-  } else {
-    // we have sack blocks
-    if (sq_.minseq() > mptcp_prev_sqminseq_ && mptcp_prev_sqminseq_ > 0) 
-      mptcp_byte_acked_ = sq_.minseq() - mptcp_prev_sqminseq_;
-    else
-      mptcp_byte_acked_ = sq_.total() - mptcp_prev_sqtotal_;
-  }
-
-  mptcp_prev_sqtotal_ = (int)sq_.total();
-  mptcp_prev_sqminseq_ = (int)sq_.minseq();
-  mptcp_prev_ackno_ = (int)highest_ack_;
-
-  mptcp_byte_acked_ /= maxseg_;
-}
-
-/*
  * open up the congestion window based on linked increase algorithm
- * in draft-raiciu-mptcp-congestion-01
+ * in draft-ietf-mptcp-congestion-05
+
+   The logic in the draft is: 
+     For each ack received on subflow i, increase cwnd_i by min
+     (alpha*bytes_acked*mss_i/tot_cwnd , bytes_acked*mss_i/cwnd_i )
+   
+   Since ns-2's congestion control logic is packet base, the logic 
+   in here is rather simplified. Please note the following difference from
+   the original one.
+     o we don't use bytes_acked. use 1 packet size instead.
+     o we don't use mss_i. use 1 packet size instead.
+ *
  */
 void
 MpFullTcpAgent::opencwnd ()
 {
+  // calculate alpha here
+  mptcp_core_->calculate_alpha ();
+
   double increment;
   if (cwnd_ < ssthresh_ && mptcp_allow_slowstart_) {
     /* slow-start (exponential) */
@@ -367,12 +354,26 @@ MpFullTcpAgent::opencwnd ()
 #if 1
     double alpha = mptcp_core_->get_alpha ();
     double totalcwnd = mptcp_core_->get_totalcwnd ();
-    if (totalcwnd > 0.1)
-      increment = min (alpha * mptcp_byte_acked_ / totalcwnd,
-                       mptcp_byte_acked_ / cwnd_);
-    else
+    if (totalcwnd > 0.1) {
+
+      // original increase logic 
+      double oincrement = increase_num_ / cwnd_;
+      /*
+        Subflow i will increase by alpha*cwnd_i/tot_cwnd segments per RTT.
+      */
+      increment = increase_num_ / cwnd_ * (cwnd_ / totalcwnd) * alpha;
+      //increment = increase_num_ / cwnd_ * (cwnd_ / totalcwnd) * 0.5;
+
+      /*
+        we ensure that any multipath subflow cannot be more aggressive
+        than a TCP flow in the same circumstances 
+      */
+      if (oincrement < increment) 
+         increment = oincrement;
+    } else
 #endif
-      increment = increase_num_ / cwnd_;
+    // original increase logic
+    increment = increase_num_ / cwnd_;
 
     if ((last_cwnd_action_ == 0 || last_cwnd_action_ == CWND_ACTION_TIMEOUT)
         && max_ssthresh_ > 0) {
@@ -384,8 +385,23 @@ MpFullTcpAgent::opencwnd ()
   if (maxcwnd_ && (int (cwnd_) > maxcwnd_))
     cwnd_ = maxcwnd_;
 
-  /* reset byte_acked */
-  mptcp_byte_acked_ = 0;
-
   return;
+}
+
+void
+MpFullTcpAgent::timeout_action()
+{
+  SackFullTcpAgent::timeout_action();
+
+  // calculate alpha here
+  mptcp_core_->calculate_alpha ();
+}
+
+void
+MpFullTcpAgent::dupack_action()
+{
+  SackFullTcpAgent::dupack_action();
+
+  // calculate alpha here
+  mptcp_core_->calculate_alpha ();
 }
